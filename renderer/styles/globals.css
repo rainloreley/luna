@@ -6,6 +6,10 @@
     height: calc(100% - 7rem - 3.5rem);
 }
 
+.sidebarWrapperChildrenHeight {
+    height: calc(100% - 4rem);
+}
+
 .hideScrollbar::-webkit-scrollbar {
     display: none;
 }
