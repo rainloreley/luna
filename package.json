@@ -1,9 +1,9 @@
 {
   "private": true,
-  "name": "my-nextron-app",
-  "description": "My application description",
+  "name": "luna",
+  "description": "Audio player",
   "version": "1.0.0",
-  "author": "Yoshihide Shiono <shiono.yoshihide@gmail.com>",
+  "author": "Adrian Baumgart <adrian@abmgrt.dev>",
   "main": "app/background.js",
   "scripts": {
     "dev": "nextron",

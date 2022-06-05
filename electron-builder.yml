@@ -1,6 +1,6 @@
-appId: com.example.nextron
-productName: My Nextron App
-copyright: Copyright © 2018 Yoshihide Shiono
+appId: dev.abmgrt.luna
+productName: Luna
+copyright: Copyright © 2018 Adrian Baumgart
 directories:
   output: dist
   buildResources: resources
