@@ -2,9 +2,10 @@ import {NextPage} from "next";
 import {FunctionComponent, useContext, useEffect, useState} from "react";
 import {AppControlContext} from "../../components/appContextProvider";
 import {Song} from "../../backend/LibraryManager";
-import {Play} from "react-feather";
+import {Play, PlayCircle} from "react-feather";
 import {ipcRenderer} from "electron";
 import {secondsToMMSSFormat} from "../../helpers/HelperFunctions";
+import AnimatedEQ from "../../components/icons/AnimatedEQ";
 
 const MusicLibraryView: NextPage = () => {
 
@@ -41,13 +42,19 @@ interface SongCell_Props {
 
 const SongCell: FunctionComponent<SongCell_Props> = ({song, index}) => {
 
-    const {playSong} = useContext(AppControlContext);
+    const {playSong, currentlyPlaying} = useContext(AppControlContext);
 
     return (
         <li className={"flex m-2 p-2 rounded-lg items-center border-b dark:border-gray-500"}>
-            <p className={"text-gray-500 mr-2 text-lg"}>{index + 1}</p>
+            <div className={"w-8"}>
+                {currentlyPlaying !== null && currentlyPlaying.song.uid === song.uid && currentlyPlaying.playlist === "library" ? (
+                    <AnimatedEQ />
+                ) : (
+                    <p className={"text-gray-500 mr-2 text-center text-lg"}>{index + 1}</p>
+                )}
+            </div>
             <button className={"bg-blue-500 rounded-lg w-9 h-9 flex justify-center items-center"} onClick={() => {
-                playSong(song);
+                playSong(song, "library", "");
             }}>
                 <Play color={"white"} className={"w-7 h-7"} />
             </button>

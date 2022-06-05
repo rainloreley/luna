@@ -2,19 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+view between the app title and the player controls
+*/
 .centerView {
     height: calc(100% - 7rem - 3.5rem);
 }
 
+/*
+height of sidebar child, subtracted by the height of the title
+*/
 .sidebarWrapperChildrenHeight {
     height: calc(100% - 4rem);
+}
+
+/*
+hides the scrollbar in a scrollable list when applied
+*/
+.hideScrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 .hideScrollbar::-webkit-scrollbar {
     display: none;
 }
 
-.hideScrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+/*
+disable being able to select text
+*/
+p, h1, h2, h3, h4, h5, h6, button, a {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }

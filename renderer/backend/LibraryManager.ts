@@ -14,18 +14,43 @@ class LibraryManager {
 
     }
 
-    importMusic = async (paths: string[]): Promise<LibraryManager> => {
+    importMusic = async (paths: string[], updates: (currentname, currentcount, total) => void): Promise<LibraryManager> => {
         let _newSongs: Song[] = [];
+        if (!fs.existsSync(appDataFolder)) {
+            fs.mkdir(appDataFolder, _ => {});
+        }
         if (!fs.existsSync(`${appDataFolder}/music`)) {
             fs.mkdirSync(`${appDataFolder}/music`);
         }
-        for (const path of paths) {
-            fs.copyFileSync(path, `${appDataFolder}/music/${path.split("/").pop()}`)
+        for (var i = 0; i < paths.length; i++) {
+            const path = paths[i];
+            console.log(path);
+            updates(path.split("/").pop(), i + 1, paths.length);
+            var generateUUID = true;
+            var songUUID = "";
+
+            // loop to avoid duplicate uuids
+            while (generateUUID) {
+                songUUID = uuidv4();
+                const matchExists = this.musicCatalogue.findIndex((e) => {return e.uid === songUUID})
+                if (matchExists < 0) {
+                    generateUUID = false;
+                }
+            }
+
+
+            const songPath = `${appDataFolder}/music/${songUUID}_${path.split("/").pop()}`
+
+            fs.copyFileSync(path, songPath)
+
             const metadata = await mm.parseFile(path, {duration: true});
+            metadata.common.picture = undefined;
+            const songName = metadata.common.title ?? path.split("/").pop().replace(".mp3", "").replace(".wav", "").replace(".ogg", "")
+
             _newSongs.push({
-                uid: uuidv4(),
-                path: `${appDataFolder}/music/${path.split("/").pop()}`,
-                name: metadata.common.title ?? path.split("/").pop().replace(".mp3", "").replace(".wav", "").replace(".ogg", ""),
+                uid: songUUID,
+                path: songPath,
+                name: songName,
                 metadata: metadata.common,
                 duration: metadata.format.duration,
                 added: Date.now()
@@ -40,7 +65,28 @@ class LibraryManager {
         if (fs.existsSync(`${appDataFolder}/data.json`)) {
             const _dataFile = fs.readFileSync(`${appDataFolder}/data.json`, {encoding: "utf8"});
             const _dataJson = JSON.parse(_dataFile);
-            return new LibraryManager(_dataJson.musicCatalogue, _dataJson.playlists)
+            const samplePlaylist: Playlist = {
+                uid: "03952",
+                name: "Cool",
+                color: "#ff0000",
+                entries: [
+                    {
+                        uid: "2322332",
+                        customName: "DNA Song",
+                        song: "08bb7093-c76d-4de8-8f86-a9eb145c2125",
+                        index: 0,
+                        endBehavior: PlaylistEntryEndBehavior.next
+                    },
+                    {
+                        uid: "94209ßß9249ß09240ß4ß02",
+                        customName: "Mission Impossible",
+                        song: "9fd85ed8-0136-4c03-be36-d1793c83a70a",
+                        index: 1,
+                        endBehavior: PlaylistEntryEndBehavior.stop
+                    }
+                ]
+            }
+            return new LibraryManager(_dataJson.musicCatalogue, [samplePlaylist])
         }
         else {
             return new LibraryManager([], []);
@@ -81,6 +127,7 @@ interface Playlist {
 
 interface PlaylistEntry {
     uid: string
+    customName: string
     song: string
     index: number
     endBehavior: PlaylistEntryEndBehavior
@@ -91,6 +138,6 @@ enum PlaylistEntryEndBehavior {
     stop
 
 }
-
-export type {Song};
+export {PlaylistEntryEndBehavior};
+export type {Song, PlaylistEntry, Playlist};
 export default LibraryManager;

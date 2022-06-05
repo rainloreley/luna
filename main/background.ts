@@ -1,4 +1,4 @@
-import { app, ipcMain, dialog } from 'electron';
+import { app, ipcMain, dialog, nativeTheme } from 'electron';
 import serve from 'electron-serve';
 import { createWindow } from './helpers';
 
@@ -12,6 +12,7 @@ if (isProd) {
 
 (async () => {
   await app.whenReady();
+
 
   const mainWindow = createWindow('main', {
     width: 1000,
@@ -42,6 +43,24 @@ if (isProd) {
   ipcMain.on("app::reload-catalogue-to-main", (event, args) => {
     mainWindow.webContents.send("app::reload-catalogue", args);
   })
+
+  ipcMain.on("app::get-color-scheme", (event, args) => {
+    mainWindow.webContents.send("app::color-scheme", nativeTheme.themeSource);
+  });
+
+  ipcMain.on("app::set-color-scheme", async (event, args) => {
+    nativeTheme.themeSource = args == "dark" ? "dark" : "light";
+    await mainWindow.webContents.executeJavaScript(`localStorage.setItem("theme", "${args}");`);
+  });
+
+  const theme = await mainWindow.webContents.executeJavaScript('localStorage.getItem("theme")');
+  if (theme == null) {
+    await mainWindow.webContents.executeJavaScript(`localStorage.setItem("theme", "light");`);
+    nativeTheme.themeSource = "light";
+  }
+  else {
+    nativeTheme.themeSource = theme == "dark" ? "dark" : "light";
+  }
 })();
 
 app.on('window-all-closed', () => {

@@ -4,6 +4,9 @@ module.exports = {
     './renderer/components/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
+    experimental: {
+      darkModeVariant: true
+    },
     darkMode: 'media', // or 'media' or 'class'
     backgroundColor: (theme) => ({
       ...theme('colors'),

@@ -1,0 +1,65 @@
+/*
+Credit: https://codepen.io/ViRPo/pen/YzKWWPW
+Slightly modified
+*/
+
+.eqbar {
+    transform: scale(1, -1) translate(0, -24px);
+    @apply fill-green-500;
+}
+
+.eqbar1 {
+    animation-name: shorteq;
+    animation-duration: 0.5s;
+    animation-iteration-count: infinite;
+    animation-delay: 0s;
+}
+
+.eqbar1 {
+    animation-name: shorteq;
+    animation-duration: 0.5s;
+    animation-iteration-count: infinite;
+    animation-delay: 0s;
+}
+
+.eqbar2 {
+    animation-name: talleq;
+    animation-duration: 0.5s;
+    animation-iteration-count: infinite;
+    animation-delay: 0.17s;
+}
+
+.eqbar3 {
+    animation-name: shorteq;
+    animation-duration: 0.5s;
+    animation-iteration-count: infinite;
+    animation-delay: 0.34s;
+}
+
+@keyframes shorteq {
+    0% {
+        height: 8px
+    }
+
+    50% {
+        height: 4px
+    }
+
+    100% {
+        height: 8px
+    }
+}
+
+@keyframes talleq {
+    0% {
+        height: 16px
+    }
+
+    50% {
+        height: 6px
+    }
+
+    100% {
+        height: 16px
+    }
+}
