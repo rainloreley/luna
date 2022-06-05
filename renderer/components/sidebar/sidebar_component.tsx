@@ -24,7 +24,7 @@ const SidebarElement: FunctionComponent<SidebarElement_Props> = ({title, icon, s
     return (
         <li className={`w-full p-1 rounded-lg flex ${selected ? "bg-blue-500" : ""}`}>
             {icon}
-            <p className={`text-left ${selected ? "text-white" : "text-black"}`}>{title}</p>
+            <p className={`text-left ml-1 ${selected ? "text-white" : "text-black"}`}>{title}</p>
         </li>
     )
 }
