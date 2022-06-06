@@ -65,7 +65,7 @@ class LibraryManager {
         if (fs.existsSync(`${appDataFolder}/data.json`)) {
             const _dataFile = fs.readFileSync(`${appDataFolder}/data.json`, {encoding: "utf8"});
             const _dataJson = JSON.parse(_dataFile);
-            const samplePlaylist: Playlist = {
+            /*const samplePlaylist: Playlist = {
                 uid: "03952",
                 name: "Cool",
                 color: "#ff0000",
@@ -85,8 +85,8 @@ class LibraryManager {
                         endBehavior: PlaylistEntryEndBehavior.stop
                     }
                 ]
-            }
-            return new LibraryManager(_dataJson.musicCatalogue, [samplePlaylist])
+            }*/
+            return new LibraryManager(_dataJson.musicCatalogue, _dataJson.playlists)
         }
         else {
             return new LibraryManager([], []);

@@ -2,15 +2,20 @@ import {NextPage} from "next";
 import {FunctionComponent, useContext, useEffect, useState} from "react";
 import {AppControlContext} from "../../components/appContextProvider";
 import {Song} from "../../backend/LibraryManager";
-import {Play, PlayCircle} from "react-feather";
+import {Play} from "react-feather";
 import {ipcRenderer} from "electron";
 import {secondsToMMSSFormat} from "../../helpers/HelperFunctions";
 import AnimatedEQ from "../../components/icons/AnimatedEQ";
 
-const MusicLibraryView: NextPage = () => {
+interface MusicLibraryView_Props {
+    setSelectedSongs: (songs: string[]) => void;
+}
+
+const MusicLibraryView: NextPage<MusicLibraryView_Props> = ({setSelectedSongs}) => {
 
     const {libraryManager} = useContext(AppControlContext);
     const [musicCatalogue, setMusicCatalogue] = useState<Song[]>([]);
+    const [selectedElements, setSelectedElements] = useState<string[]>([]);
 
     useEffect(() => {
         loadMusicCatalogue(libraryManager.musicCatalogue);
@@ -24,11 +29,33 @@ const MusicLibraryView: NextPage = () => {
         setMusicCatalogue(catalogue);
     }
 
+    const selectedElement = (uid: string, single: boolean) => {
+        let _selected = selectedElements;
+         if (single) {
+            if (_selected.includes(uid)) {
+                _selected = [];
+            }
+            else {
+                _selected = [uid];
+            }
+        }
+        else {
+             if (_selected.includes(uid)) {
+                 _selected.splice(_selected.indexOf(uid), 1);
+             }
+             else {
+                 _selected.push(uid);
+             }
+        }
+        setSelectedSongs(_selected)
+        setSelectedElements(_selected)
+    }
+
     return (
         <div className={"h-full"}>
             <ul className={"overflow-y-scroll h-full hideScrollbar"}>
                 {musicCatalogue.map((song, index) => (
-                    <SongCell song={song} key={song.uid} index={index} />
+                    <SongCell song={song} key={song.uid} index={index} selectedElement={selectedElement} isSelected={selectedElements.includes(song.uid)} />
                 ))}
             </ul>
         </div>
@@ -38,17 +65,28 @@ const MusicLibraryView: NextPage = () => {
 interface SongCell_Props {
     song: Song
     index: number
+    selectedElement: (uid: string, single: boolean) => void;
+    isSelected: boolean
 }
 
-const SongCell: FunctionComponent<SongCell_Props> = ({song, index}) => {
+const SongCell: FunctionComponent<SongCell_Props> = ({song, index, selectedElement, isSelected}) => {
 
     const {playSong, currentlyPlaying} = useContext(AppControlContext);
+    const [selected, setSelected] = useState<boolean>(isSelected);
+
+    useEffect(() => {
+        setSelected(isSelected)
+    }, [isSelected]);
 
     return (
-        <li className={"flex m-2 p-2 rounded-lg items-center border-b dark:border-gray-500"}>
+        <li className={`flex m-2 p-2 rounded-lg items-center border-b dark:border-gray-500 ${selected ? "dark:bg-dark-secondary" : ""}`} onClick={(e) => {
+            setSelected(!selected)
+            selectedElement(song.uid, !e.metaKey);
+
+        }}>
             <div className={"w-8"}>
                 {currentlyPlaying !== null && currentlyPlaying.song.uid === song.uid && currentlyPlaying.playlist === "library" ? (
-                    <AnimatedEQ />
+                    <AnimatedEQ isAnimating={!currentlyPlaying.audio.paused} />
                 ) : (
                     <p className={"text-gray-500 mr-2 text-center text-lg"}>{index + 1}</p>
                 )}

@@ -1,6 +1,6 @@
 import {ipcRenderer} from "electron";
-import LibraryManager, {PlaylistEntryEndBehavior, Song} from "../backend/LibraryManager";
-import {createContext, useEffect, useState} from "react";
+import LibraryManager, {PlaylistEntry, PlaylistEntryEndBehavior, Song} from "../backend/LibraryManager";
+import {createContext, Dispatch, SetStateAction, useEffect, useState} from "react";
 import {
     Download,
     Moon,
@@ -17,13 +17,13 @@ import {
 import {CircularProgress, Slider} from "@mui/material";
 import {secondsToMMSSFormat} from "../helpers/HelperFunctions";
 import {v4 as uuidv4} from "uuid";
-import {Simulate} from "react-dom/test-utils";
-import play = Simulate.play;
 
 type AppControlHandlerProps = {
-    libraryManager: LibraryManager
+    libraryManager: LibraryManager;
+    setLibraryManager: Dispatch<SetStateAction<LibraryManager>>;
     playSong: (song: Song, playlist: string, playlistEntry: string) => void;
     currentlyPlaying: PlayingSong;
+    addSongsToPlaylist: (playlistUID: string, songs: string[]) => void;
 }
 
 interface NotificationCenterElement {
@@ -75,10 +75,11 @@ const AppControlProvider = ({children}) => {
 
         ipcRenderer.removeAllListeners("app::color-scheme")
         ipcRenderer.on("app::color-scheme", (event, args) => {
+            console.log(args);
             setAppTheme(args);
         })
 
-        ipcRenderer.send("app::get-color-theme");
+        ipcRenderer.send("app::get-color-scheme");
 
     }, []);
 
@@ -185,10 +186,54 @@ const AppControlProvider = ({children}) => {
         }
     }
 
+    const addSongsToPlaylist = (playlistUID: string, songs: string[]) => {
+        const playlist = libraryManager.playlists.find((e) => e.uid === playlistUID);
+        if (playlist === undefined) {
+            const errorMessage: NotificationCenterElement = {
+                uid: uuidv4(),
+                text: "Die Playlist wurde nicht gefunden",
+                status: NotificationCenterElementStatus.error,
+                dismissAt: Date.now() + 2000
+            }
+            addElementToNotificationCenter(errorMessage);
+            return;
+        }
+
+        var _newEntries: PlaylistEntry[] = [];
+        for (const _songID of songs) {
+            const _song = libraryManager.musicCatalogue.find((e) => e.uid === _songID);
+            const _entry: PlaylistEntry = {
+                uid: uuidv4(),
+                customName: _song.name,
+                song: _songID,
+                index: playlist.entries.length + _newEntries.length,
+                endBehavior: PlaylistEntryEndBehavior.next
+            }
+            _newEntries.push(_entry);
+        }
+        const _allEntries = playlist.entries.concat(_newEntries);
+        setLibraryManager((e) => {
+            e.playlists.find((p) => p.uid === playlistUID).entries = _allEntries;
+            return e;
+        });
+
+        const completionMessage: NotificationCenterElement = {
+            uid: uuidv4(),
+            status: NotificationCenterElementStatus.success,
+            text: `${_newEntries.length} Lieder hinzugefügt`,
+            dismissAt: Date.now() + 2000
+        }
+        addElementToNotificationCenter(completionMessage);
+        libraryManager.saveData();
+
+    }
+
     const state: AppControlHandlerProps = {
         libraryManager: libraryManager,
+        setLibraryManager: setLibraryManager,
         playSong: playSong,
-        currentlyPlaying: currentlyPlaying
+        currentlyPlaying: currentlyPlaying,
+        addSongsToPlaylist: addSongsToPlaylist
     }
     // @ts-ignore
     return (

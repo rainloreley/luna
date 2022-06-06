@@ -54,7 +54,7 @@ const PlaylistEntryCell: FunctionComponent<PlaylistEntryCell_Props> = ({playlist
         <li className={"flex m-2 p-2 rounded-lg items-center border-b dark:border-gray-500"}>
             <div className={"w-8"}>
                 {currentlyPlaying !== null && currentlyPlaying.song.uid === song.uid && currentlyPlaying.playlist === playlistUID && currentlyPlaying.playlistEntry === entry.uid ? (
-                    <AnimatedEQ />
+                    <AnimatedEQ isAnimating={!currentlyPlaying.audio.paused} />
                 ) : (
                     <p className={"text-gray-500 mr-2 text-center text-lg"}>{index + 1}</p>
                 )}

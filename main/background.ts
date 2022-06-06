@@ -30,6 +30,15 @@ if (isProd) {
     mainWindow.webContents.openDevTools();
   }
 
+  const theme = await mainWindow.webContents.executeJavaScript('localStorage.getItem("theme")');
+  if (theme == null) {
+    await mainWindow.webContents.executeJavaScript(`localStorage.setItem("theme", "light");`);
+    nativeTheme.themeSource = "light";
+  }
+  else {
+    nativeTheme.themeSource = theme == "dark" ? "dark" : "light";
+  }
+
   ipcMain.on("app::import-music", () => {
     dialog.showOpenDialog({
       properties: ["openFile", "multiSelections"],
@@ -52,15 +61,6 @@ if (isProd) {
     nativeTheme.themeSource = args == "dark" ? "dark" : "light";
     await mainWindow.webContents.executeJavaScript(`localStorage.setItem("theme", "${args}");`);
   });
-
-  const theme = await mainWindow.webContents.executeJavaScript('localStorage.getItem("theme")');
-  if (theme == null) {
-    await mainWindow.webContents.executeJavaScript(`localStorage.setItem("theme", "light");`);
-    nativeTheme.themeSource = "light";
-  }
-  else {
-    nativeTheme.themeSource = theme == "dark" ? "dark" : "light";
-  }
 })();
 
 app.on('window-all-closed', () => {
