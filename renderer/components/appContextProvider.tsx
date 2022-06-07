@@ -5,7 +5,7 @@ import {
     Download,
     Moon,
     Pause,
-    Play,
+    Play, Save,
     SkipBack,
     SkipForward,
     Speaker,
@@ -17,6 +17,9 @@ import {
 import {CircularProgress, Slider} from "@mui/material";
 import {secondsToMMSSFormat} from "../helpers/HelperFunctions";
 import {v4 as uuidv4} from "uuid";
+import LunaboardController, {LunaboardClickableRotaryEncoder, LunaboardSlider} from "../backend/LunaboardController";
+import {Simulate} from "react-dom/test-utils";
+import volumeChange = Simulate.volumeChange;
 
 type AppControlHandlerProps = {
     libraryManager: LibraryManager;
@@ -24,6 +27,9 @@ type AppControlHandlerProps = {
     playSong: (song: Song, playlist: string, playlistEntry: string) => void;
     currentlyPlaying: PlayingSong;
     addSongsToPlaylist: (playlistUID: string, songs: string[]) => void;
+    lunaboardController: LunaboardController;
+    setLunaboardController: Dispatch<SetStateAction<LunaboardController>>;
+    changeVolume: (volume: number) => void;
 }
 
 interface NotificationCenterElement {
@@ -59,11 +65,14 @@ const AppControlProvider = ({children}) => {
 
     var updatingTime = false;
 
+    const [boardController, setBoardController] = useState<LunaboardController>(null);
+
     useEffect(() => {
         if (libraryManager == null) {
             const _loadedLibraryManager = LibraryManager.loadData();
             setLibraryManager(_loadedLibraryManager);
         }
+
         clearInterval(notificationcenterInterval);
         notificationcenterInterval = setInterval(() => {
             setNotificationCenter((e) => [
@@ -176,13 +185,22 @@ const AppControlProvider = ({children}) => {
             setCurrentlyPlayingPaused(false);
             setCurrentlyPlaying(_playingSong);
         });
+
+        ipcRenderer.removeAllListeners("board::sli1-value-listener");
+        ipcRenderer.on("board::sli1-value-listener", (event, args) => {
+            changeVolume(args / LunaboardSlider.MAX);
+        })
     }
 
     const changeVolume = (volume: number) => {
         if (volume < 0 || volume > 1) return;
         setPlayerVolume(volume);
         if (currentlyPlaying !== null) {
-            currentlyPlaying.audio.volume = volume;
+            setCurrentlyPlaying((e) => {
+                e.audio.volume = volume;
+                return e;
+            })
+            //currentlyPlaying.audio.volume = volume;
         }
     }
 
@@ -214,26 +232,77 @@ const AppControlProvider = ({children}) => {
         const _allEntries = playlist.entries.concat(_newEntries);
         setLibraryManager((e) => {
             e.playlists.find((p) => p.uid === playlistUID).entries = _allEntries;
+            e.saveData()
             return e;
         });
 
         const completionMessage: NotificationCenterElement = {
             uid: uuidv4(),
             status: NotificationCenterElementStatus.success,
-            text: `${_newEntries.length} Lieder hinzugefügt`,
+            text: `${_newEntries.length} Lied${_newEntries.length > 1 ? "er" : ""} hinzugefügt`,
             dismissAt: Date.now() + 2000
         }
         addElementToNotificationCenter(completionMessage);
-        libraryManager.saveData();
 
     }
+
+    const registerSingleLunaboardControls = () => {
+        const _newboardController = new LunaboardController();
+        _newboardController.startListener();
+
+        // List scroller
+        const _scrollREid = "re1";
+        if (_newboardController.elements.findIndex((e) => e.identifier === _scrollREid) === -1) {
+            const _scrollRE = new LunaboardClickableRotaryEncoder("re1", "board::re1-btn-relay", "board::re1-pos-relay");
+            _newboardController.elements.push(_scrollRE);
+        }
+
+        const _volumeSliderid = "sli1";
+        if (_newboardController.elements.findIndex((e) => e.identifier == _volumeSliderid) === -1) {
+            const _volumeSlider = new LunaboardSlider("sli1", "board::sli1-value-relay");
+
+            _newboardController.elements.push(_volumeSlider)
+        }
+
+        setBoardController(_newboardController);
+
+        ipcRenderer.removeAllListeners("board::sli1-value-listener");
+        ipcRenderer.on("board::sli1-value-listener", (event, args) => {
+            changeVolume(args / LunaboardSlider.MAX);
+        })
+    }
+
+    /*
+    * This is different from the single register becuase it is called every time the currently playing song changes.
+    * This is needed for the volume control slider, because it can't access the currently playing song and change its volume without depending on it.
+    * The useEffect-function that calls this register uses the currentlyPlaying variable as a dependency.
+    * If we put all elements on that listener, every single one of them will get new listeners every time, stacking up over time.
+    */
+
+    const registerAdaptiveLunaboardControls = () => {
+        // Volume slider
+
+    }
+
+    useEffect(() => {
+        if (boardController == null) {
+            registerSingleLunaboardControls()
+        }
+    }, []);
+
+    useEffect(() => {
+        registerAdaptiveLunaboardControls()
+    }, [currentlyPlaying, boardController])
 
     const state: AppControlHandlerProps = {
         libraryManager: libraryManager,
         setLibraryManager: setLibraryManager,
         playSong: playSong,
         currentlyPlaying: currentlyPlaying,
-        addSongsToPlaylist: addSongsToPlaylist
+        addSongsToPlaylist: addSongsToPlaylist,
+        lunaboardController: boardController,
+        setLunaboardController: setBoardController,
+        changeVolume: changeVolume
     }
     // @ts-ignore
     return (
@@ -253,7 +322,7 @@ const AppControlProvider = ({children}) => {
                                              : `${
                                                  notification.status ===
                                                  NotificationCenterElementStatus.success
-                                                     ? 'bg-green-400'
+                                                     ? 'bg-green-500'
                                                      : 'bg-gray-400 dark:bg-gray-600'
                                              }`
                                      }`}
@@ -273,7 +342,7 @@ const AppControlProvider = ({children}) => {
                              ))}
                          </div>
 
-                         <div className={"bg-gray-100 dark:bg-dark-secondary p-3 h-14 flex items-center justify-between border-b border-gray-400 dark:border-gray-600"}>
+                         <div className={"bg-gray-100 dark:bg-dark-secondary p-3 h-14 flex items-center justify-between border-b border-gray-300 dark:border-gray-600"}>
                              <div className={"flex items-center"}>
                                  <Speaker className={"mr-2"} width={20} />
                                  <h1 className={"text-xl font-bold bg-gradient-to-tr from-red-400 to-purple-400 text-transparent bg-clip-text"}>Luna</h1>
@@ -288,12 +357,24 @@ const AppControlProvider = ({children}) => {
                                  ) : (
                                      <div />
                                  )}
-                                 <button disabled={importLoadingIndicatorVisible} onClick={async () => {
+                                 <button className={"ml-3"} disabled={importLoadingIndicatorVisible} onClick={async () => {
                                      await ipcRenderer.send("app::import-music");
                                  }}>
                                      <Download />
                                  </button>
-                                 <button className={"ml-2"} onClick={async () => {
+                                 <button className={"ml-3"} onClick={() => {
+                                     libraryManager.saveData();
+                                     const _notification: NotificationCenterElement = {
+                                         uid: uuidv4(),
+                                         status: NotificationCenterElementStatus.success,
+                                         text: "Data saved",
+                                         dismissAt: Date.now() + 2000
+                                     }
+                                     addElementToNotificationCenter(_notification);
+                                 }}>
+                                     <Save />
+                                 </button>
+                                 <button className={"ml-3"} onClick={async () => {
                                      const newScheme = appTheme == "dark" ? "light" : "dark";
                                      await ipcRenderer.send("app::set-color-scheme", newScheme)
                                      setAppTheme(newScheme)
@@ -307,7 +388,7 @@ const AppControlProvider = ({children}) => {
                              </div>
                          </div>
                          {children}
-                         <div className={"flex p-4 h-28 justify-between items-center bg-gray-100 dark:bg-dark-secondary border-t border-gray-400 dark:border-gray-600 fixed bottom-0 left-0 right-0"}>
+                         <div className={"flex p-4 h-28 justify-between items-center bg-gray-100 dark:bg-dark-secondary border-t border-gray-300 dark:border-gray-600 fixed bottom-0 left-0 right-0"}>
                              <div className={"w-28 ml-2"} />
                              <div className={"w-1/2 flex flex-col items-center"}>
                                  <div>

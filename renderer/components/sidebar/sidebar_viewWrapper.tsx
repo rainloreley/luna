@@ -7,7 +7,7 @@ const Sidebar_ViewWrapper = ({title, note, children}) => {
                 <h1 className={"text-3xl font-bold text-ellipsis truncate w-3/4"}>{title}</h1>
                 <p className={"ml-2 italic text-gray-600 dark:text-gray-400 text-sm"}>{note}</p>
             </div>
-            <div className={"sidebarWrapperChildrenHeight"}>
+            <div className={"w-full m-0 sidebarWrapperChildrenHeight"}>
                 {children}
             </div>
         </div>

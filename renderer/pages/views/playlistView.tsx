@@ -21,20 +21,26 @@ const PlaylistView: FunctionComponent<PlaylistView_Props> = ({playlistUID}) => {
     }, [playlistUID]);
 
     return (
-        <div>
+        <div className={"h-full w-full"}>
             {playlist !== null ? (
                 <div className={"h-full"}>
-                    <ul className={"overflow-y-scroll h-full hideScrollbar"}>
-                        {playlist.entries.map((entry, index) => {
-                            const song = libraryManager.musicCatalogue.find((e) => e.uid == entry.song);
-                            return (
-                                <PlaylistEntryCell playlistUID={playlistUID} entry={entry} song={song} index={index} key={entry.uid} />
-                            )
-                        })}
-                    </ul>
+                    {playlist.entries.length > 0 ? (
+                        <ul className={"overflow-y-scroll h-full hideScrollbar"}>
+                            {playlist.entries.map((entry, index) => {
+                                const song = libraryManager.musicCatalogue.find((e) => e.uid == entry.song);
+                                return (
+                                    <PlaylistEntryCell playlistUID={playlistUID} entry={entry} song={song} index={index} key={entry.uid} />
+                                )
+                            })}
+                        </ul>
+                    ) : (
+                        <div className={"w-full h-full flex justify-center items-center"}>
+                            <h1 className={"text-3xl font-bold"}>Keine Lieder in dieser Playlist</h1>
+                        </div>
+                    )}
                 </div>
             ) : (
-                <p>Interner Fehler</p>
+                <p>Lädt...</p>
             )}
         </div>
     )

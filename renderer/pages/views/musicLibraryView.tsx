@@ -1,11 +1,12 @@
 import {NextPage} from "next";
-import {FunctionComponent, useContext, useEffect, useState} from "react";
+import {FunctionComponent, useCallback, useContext, useEffect, useState} from "react";
 import {AppControlContext} from "../../components/appContextProvider";
 import {Song} from "../../backend/LibraryManager";
 import {Play} from "react-feather";
 import {ipcRenderer} from "electron";
 import {secondsToMMSSFormat} from "../../helpers/HelperFunctions";
 import AnimatedEQ from "../../components/icons/AnimatedEQ";
+import {LunaboardClickableRotaryEncoder, RotaryEncoderDirection} from "../../backend/LunaboardController";
 
 interface MusicLibraryView_Props {
     setSelectedSongs: (songs: string[]) => void;
@@ -13,9 +14,31 @@ interface MusicLibraryView_Props {
 
 const MusicLibraryView: NextPage<MusicLibraryView_Props> = ({setSelectedSongs}) => {
 
-    const {libraryManager} = useContext(AppControlContext);
+    const {libraryManager, playSong, currentlyPlaying, changeVolume} = useContext(AppControlContext);
     const [musicCatalogue, setMusicCatalogue] = useState<Song[]>([]);
     const [selectedElements, setSelectedElements] = useState<string[]>([]);
+    const [refList, setRefList] = useState([]);
+
+    const playSelectedSong = () => {
+        if (selectedElements.length !== 1) return;
+        const selectedSongByUID = musicCatalogue.find((e) => e.uid === selectedElements[0]);
+        if (selectedSongByUID === undefined) return;
+        playSong(selectedSongByUID, "library", "");
+    }
+
+    const scrollThroughList = (direction: RotaryEncoderDirection) => {
+        var currentlySelectedItemIndex = -1;
+        if (selectedElements.length === 1) {
+            currentlySelectedItemIndex = musicCatalogue.findIndex((e) => e.uid === selectedElements[0]);
+        }
+        else if (selectedElements.length > 1) {
+            currentlySelectedItemIndex = musicCatalogue.findIndex((e) => e.uid === [... selectedElements].pop());
+        }
+        const nextSelectedElement = direction === RotaryEncoderDirection.up ? currentlySelectedItemIndex + 1 : currentlySelectedItemIndex - 1;
+        if (nextSelectedElement < 0 || nextSelectedElement >= musicCatalogue.length) return;
+        selectedElement(musicCatalogue[nextSelectedElement].uid, true);
+        refList[nextSelectedElement].scrollIntoView();
+    }
 
     useEffect(() => {
         loadMusicCatalogue(libraryManager.musicCatalogue);
@@ -51,11 +74,31 @@ const MusicLibraryView: NextPage<MusicLibraryView_Props> = ({setSelectedSongs}) 
         setSelectedElements(_selected)
     }
 
+    // Lunaboard scroll wheel
+    useEffect(() => {
+        ipcRenderer.removeAllListeners("board::re1-pos-listener")
+        ipcRenderer.on("board::re1-pos-listener", (event, args) => {
+            scrollThroughList(args)
+        });
+
+        ipcRenderer.removeAllListeners("board::re1-btn-listener");
+        ipcRenderer.on("board::re1-btn-listener", (event, args) => {
+            if (args == 1) {
+                playSelectedSong();
+            }
+        })
+    }, [currentlyPlaying, musicCatalogue, selectedElements, changeVolume]);
+
     return (
         <div className={"h-full"}>
             <ul className={"overflow-y-scroll h-full hideScrollbar"}>
                 {musicCatalogue.map((song, index) => (
-                    <SongCell song={song} key={song.uid} index={index} selectedElement={selectedElement} isSelected={selectedElements.includes(song.uid)} />
+                    <li ref={el => setRefList((f) => {
+                        f[index] = el;
+                        return f;
+                    })}>
+                        <SongCell song={song} key={song.uid} index={index} selectedElement={selectedElement} isSelected={selectedElements.includes(song.uid)} />
+                    </li>
                 ))}
             </ul>
         </div>
@@ -79,7 +122,7 @@ const SongCell: FunctionComponent<SongCell_Props> = ({song, index, selectedEleme
     }, [isSelected]);
 
     return (
-        <li className={`flex m-2 p-2 rounded-lg items-center border-b dark:border-gray-500 ${selected ? "dark:bg-dark-secondary" : ""}`} onClick={(e) => {
+        <div className={`flex m-2 p-2 rounded-lg items-center border-b dark:border-gray-500 ${selected ? "bg-gray-100 dark:bg-dark-secondary" : ""}`} onClick={(e) => {
             setSelected(!selected)
             selectedElement(song.uid, !e.metaKey);
 
@@ -100,7 +143,7 @@ const SongCell: FunctionComponent<SongCell_Props> = ({song, index, selectedEleme
                 <h1 className={"text-lg font-bold"}>{song.name}</h1>
                 <p className={"text-sm text-gray-400"}>{secondsToMMSSFormat(song.duration)} • {typeof song.metadata.artist === "string" ? song.metadata.artist : "Unknown Artist"}</p>
             </div>
-        </li>
+        </div>
     )
 }
 

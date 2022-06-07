@@ -3,6 +3,7 @@ import {Check, Music, X} from "react-feather"
 import {AppControlContext} from "../appContextProvider";
 import {Playlist} from "../../backend/LibraryManager";
 import {v4 as uuidv4} from "uuid";
+import {LunaboardClickableRotaryEncoder} from "../../backend/LunaboardController";
 
 interface SidebarComponent_Props {
     selectItem: (uid: string) => void
@@ -12,9 +13,21 @@ interface SidebarComponent_Props {
 const SidebarComponent: FunctionComponent<SidebarComponent_Props> = ({selectItem, rightClickItem}) => {
 
     const [selectedIndex, setSelectedIndex] = useState<number>(0);
-    const [isCreatingNewPlaylist, setIsCreatingNewPlaylist] = useState<boolean>(true);
+    const [isCreatingNewPlaylist, setIsCreatingNewPlaylist] = useState<boolean>(false);
+    const {libraryManager, setLibraryManager, lunaboardController, setLunaboardController} = useContext(AppControlContext);
 
     const itemSelected = (index: number, uid?: string) => {
+
+        // Remove any listeners to the scroll wheel
+        /*const _LBListScrollElement = lunaboardController.elements.findIndex((e) => e.identifier == "re1");
+        console.log(_LBListScrollElement);
+        if (_LBListScrollElement === -1) return;
+        setLunaboardController((e) => {
+            (e.elements[_LBListScrollElement] as LunaboardClickableRotaryEncoder).rotateCallback = () => {};
+            (e.elements[_LBListScrollElement] as LunaboardClickableRotaryEncoder).buttonCallback = () => {};
+            return e;
+        })*/
+
         setSelectedIndex(index);
         if (index == 0) {
             selectItem("library");
@@ -24,7 +37,6 @@ const SidebarComponent: FunctionComponent<SidebarComponent_Props> = ({selectItem
         }
     }
 
-    const {libraryManager, setLibraryManager} = useContext(AppControlContext);
     return (
         <div className={`${isCreatingNewPlaylist ? "w-80" : "w-64"} bg-gray-100 dark:bg-dark-secondary h-full`}>
             <ul className={"p-3 w-full"}>
@@ -37,7 +49,7 @@ const SidebarComponent: FunctionComponent<SidebarComponent_Props> = ({selectItem
                     </button>
                 </div>
                 {libraryManager.playlists.map((playlist, index) => (
-                    <div className={"w-full"}>
+                    <div className={"w-full my-1"}>
                         <button className={"w-full"} onClick={() => {
                             setIsCreatingNewPlaylist(false);
                             itemSelected(index + 1, playlist.uid);
@@ -61,13 +73,14 @@ const SidebarComponent: FunctionComponent<SidebarComponent_Props> = ({selectItem
                             }
                             setLibraryManager((e) => {
                                 e.playlists.push(_newPlaylist);
+                                e.saveData()
                                 return e;
                             });
                             setIsCreatingNewPlaylist(false);
                         }}/>
                     ) : (
                         <div className={"flex w-full justify-center"}>
-                            <button className={"w-8 h-8 flex items-center justify-center p-2 dark:bg-gray-600 opacity-40 rounded-full hover:opacity-60"} onClick={() => {
+                            <button className={"w-8 h-8 flex items-center justify-center p-2 bg-gray-300 dark:bg-gray-600 opacity-40 rounded-full hover:opacity-60"} onClick={() => {
                                 setIsCreatingNewPlaylist(true);
                             }}>
                                 <p>+</p>
@@ -88,7 +101,7 @@ interface SidebarElement_Props {
 }
 const SidebarElement: FunctionComponent<SidebarElement_Props> = ({title, icon, color, selected}) => {
     return (
-        <li className={`w-full px-2 py-1 rounded-lg items-center flex ${selected ? "bg-blue-500" : "hover:bg-dark-tertiary"}`}>
+        <li className={`w-full px-2 py-1 rounded-lg items-center flex ${selected ? "bg-blue-500" : "hover:bg-gray-200 hover:dark:bg-dark-tertiary"}`}>
             {icon !== undefined ? (
                 <div className={`${selected ? "text-white" : ""}`}>
                     {icon}
@@ -155,13 +168,13 @@ const SidebarElementCreation: FunctionComponent<SidebarElementCreation_Props> = 
     }
 
     return (
-        <li className={"w-full px-2 py-2 rounded-lg flex items-center bg-dark-tertiary"}>
+        <li className={"w-full px-2 py-2 rounded-lg flex items-center bg-gray-200 dark:bg-dark-tertiary"}>
             <button className={"w-4 h-4 mr-1 rounded-full"} style={{
                 background: `#${playlistColor}`
             }} onClick={generateColor} />
-            <input placeholder={"New Playlist"} value={playlistName} onChange={(e) => {
+            <input placeholder={"Neue Playlist"} autoFocus={true} value={playlistName} onChange={(e) => {
                 setPlaylistName(e.target.value);
-            }} className={"w-2/3 px-1 mx-2 rounded-lg dark:bg-gray-800"} />
+            }} className={"w-2/3 px-2 mx-2 rounded-lg dark:bg-gray-800"} />
             <button onClick={createPlaylist}>
                 <Check className={"text-green-500"} />
             </button>
